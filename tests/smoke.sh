@@ -36,9 +36,11 @@ if [ -n "$LIBC" ]; then
   llvm-mc -filetype=obj -triple=x86_64-unknown-linux -o "$FX/hello_dyn.o" testdata/hello_dyn.s
   # Diagnostics: does ld.so survive startup relocation processing?
   if LD_TRACE_LOADED_OBJECTS=1 "$FX/dyn" > "$FX/trace.txt" 2>&1; then
-    echo "ld.so trace ok:"; cat "$FX/trace.txt" | head -3
+    echo "ld.so trace ok:"; head -3 "$FX/trace.txt"
   else
-    echo "FAIL: ld.so crashed during startup (trace)"; exit 1
+    echo "FAIL: ld.so crashed during startup (trace). LD_DEBUG tail:"
+    LD_DEBUG=all "$FX/dyn" 2>&1 | tail -12 || true
+    exit 1
   fi
   if LD_BIND_NOW=1 "$FX/dyn" > "$FX/dyn_now.txt" 2>&1; then
     echo "PASS run dynamic (BIND_NOW non-lazy)"
