@@ -117,6 +117,7 @@ pub(all) struct Config {
   mut as_needed : Bool
   mut search_static : Bool
   mut z_separate_code : Bool
+  mut print_gc_sections : Bool
 }
 
 pub struct Ctx {

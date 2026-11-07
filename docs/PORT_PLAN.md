@@ -339,3 +339,19 @@ llvm-project 的 test/ELF（2048 个测试）。无需修改任何上游测试�
 
 **收割策略**：按 lit 过滤器分域跑（basic/gc-sections/segments/script*），
 逐域对齐输出细节；未实现特性先加 `--filter` 排除清单保证度量有效。
+
+## lit 收割第二轮（2026-11-08）
+
+新增高杠杆语义实现（62→63，且修复 -shared+gc 的严重丢节 bug）：
+1. **保留符号家族**（lld addReservedSymbols/addOptionalRegular 语义）：
+   _end/end/_edata/edata/_etext/etext/__bss_start/bss_start/_DYNAMIC/
+   _GLOBAL_OFFSET_TABLE_/__executable_start/__ehdr_start —— 早期定义+
+   布局后锚定（DefinedData 增加 OutSec 锚点），未定义引用也被解析；
+   _end 锚定到最后一个 alloc 节（Section: .data ✓）。
+2. **共享库导出符号是 GC 根**（lld MarkLive 语义）——修复
+   `-shared --gc-sections` 丢 .text/.data 的严重 bug。
+3. **--print-gc-sections**（"removing unused section ..." 消息格式）。
+4. 入口警告化、-shared 未定义合法化、选项接受面扩充（40+）。
+
+基线：Passed 63 / Expectedly Failed 1 / Unsupported 13 / Failed 1971。
+MoonBit 语法注记：Array.push 不需要 mut 绑定（unused_mut 会告警）。

@@ -24,6 +24,7 @@ fn test_ctx() -> Ctx {
     search_static: false,
     z_separate_code: false,
     defsyms: [],
+    print_gc_sections: false,
   }
   Ctx::new(cfg, diag)
 }

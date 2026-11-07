@@ -23,6 +23,7 @@ pub(all) struct Config {
   mut as_needed : Bool
   mut search_static : Bool
   mut z_separate_code : Bool
+  mut print_gc_sections : Bool
 }
 
 ///|
@@ -48,6 +49,7 @@ fn default_config() -> Config {
     as_needed: false,
     search_static: false,
     z_separate_code: false,
+    print_gc_sections: false,
   }
 }
 
@@ -152,6 +154,9 @@ pub fn parse_args(args : Array[Bytes], diag : @support.Diag) -> Config? {
       i += 1
     } else if arg == "-static" || arg == "--static" || arg == "-dn" {
       cfg.search_static = true
+      i += 1
+    } else if arg == "--print-gc-sections" {
+      cfg.print_gc_sections = true
       i += 1
     } else if arg == "--gc-sections" {
       cfg.gc_sections = true

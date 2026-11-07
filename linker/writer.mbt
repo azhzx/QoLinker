@@ -386,6 +386,8 @@ fn mark_live(ctx : Ctx) -> Unit {
       }
     None => ()
   }
+  // --print-gc-sections: report removed sections (lld format).
+  let removed : Array[InputSection] = []
   while work.length() > 0 {
     let sec = work.pop().unwrap()
     // Follow relocations.
@@ -423,6 +425,23 @@ fn mark_live(ctx : Ctx) -> Unit {
       }
       _ => ()
     }
+  }
+  for fref in ctx.files {
+    match fref {
+      ObjRef(f) =>
+        for sec_opt in f.sections {
+          guard sec_opt is Some(sec) else { continue }
+          if sec.is_alloc() && !sec.live && !sec.discarded {
+            removed.push(sec)
+          }
+        }
+      _ => ()
+    }
+  }
+  for sec in removed {
+    println(
+      "removing unused section '\{@support.bytes_str(sec.name)}' in file '\{@support.bytes_str(FileRef::path_of(sec.file))}'",
+    )
   }
 }
 
