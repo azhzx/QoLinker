@@ -18,6 +18,9 @@ pub(all) enum FileRef {
 pub(all) struct DefinedData {
   file : FileRef
   section : InputSection?
+  // Alternative anchor for linker-provided symbols: final VA is
+  // outsec.addr + value (used for _end/_edata etc.).
+  mut outsec : OutSec?
   value : Int64
   size : Int64
   mut is_weak : Bool
@@ -66,6 +69,8 @@ pub(all) struct SymAux {
   mut got_index : Int32
   mut has_plt : Bool
   mut plt_index : Int32
+  // Referenced by a dynamic relocation in the output (RELATIVE/GLOB_DAT/64).
+  mut has_dynref : Bool
 }
 
 ///|
@@ -160,7 +165,11 @@ fn Symbol::get_va(self : Symbol, ctx : Ctx) -> Int64 {
     Defined(d) =>
       match d.section {
         Some(sec) => sec.addr + d.value
-        None => ctx.config.image_base + d.value
+        None =>
+          match d.outsec {
+            Some(os) => os.addr + d.value
+            None => ctx.config.image_base + d.value
+          }
       }
     Common(_) => common_va(ctx, self.name)
     _ => 0L

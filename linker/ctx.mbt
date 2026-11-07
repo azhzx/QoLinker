@@ -14,6 +14,7 @@ pub struct Ctx {
   mut script : Script?
   script_outsecs : Map[Bytes, OutSec]
   mut version_script : VersionScript?
+  reserved : Array[(SymRef, Bytes)]
 }
 
 ///|
@@ -29,6 +30,7 @@ pub fn Ctx::new(config : Config, diag : @support.Diag) -> Ctx {
     script: None,
     script_outsecs: Map([]),
     version_script: None,
+    reserved: [],
   }
   symtab.ctx = Some(ctx)
   ctx

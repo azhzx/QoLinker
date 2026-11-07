@@ -229,7 +229,11 @@ pub fn build_dyn_out(
               Some(os) => os.shndx
               None => @elfspec.SHN_ABS
             }
-          None => @elfspec.SHN_ABS
+          None =>
+            match d.outsec {
+              Some(os) => os.shndx
+              None => @elfspec.SHN_ABS
+            }
         }
       Common(_) =>
         match ctx.common_bss {
@@ -387,7 +391,7 @@ pub fn scan_needs_dynsym(ctx : Ctx, scan : ScanResult) -> Array[SymRef] {
   for ref_ in ctx.symtab.symbols() {
     let sym = ref_.sym
     let mut include = false
-    if sym.aux.has_plt || sym.aux.has_got {
+    if sym.aux.has_dynref || sym.aux.has_plt || sym.aux.has_got {
       match sym.kind {
         Shared(_) => include = true
         Undefined(d) => if !d.is_weak { include = true }

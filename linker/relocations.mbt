@@ -259,6 +259,7 @@ pub fn classify_reloc(
   let action : DynAction? = match r.rtype {
     t if t == @elfspec.R_X86_64_64 =>
       if ref_ is Some(ref_) && sym_needs_dyn_access(ref_.sym) {
+        ref_.sym.aux.has_dynref = true
         let e : RelaEntry = {
           rtype: @elfspec.R_X86_64_64,
           sym: Some(ref_),

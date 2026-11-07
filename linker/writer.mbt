@@ -28,6 +28,9 @@ pub fn link_write(ctx : Ctx) -> Unit {
     Some(b) => secs.push(b)
     None => ()
   }
+  // 3b. Linker-provided reserved symbols (_end/_edata/...): defined early
+  // so relocation classification sees them; values anchored after layout.
+  define_reserved_symbols_early(ctx)
   // 4. Preemptibility + relocation scan (allocates GOT/PLT slots and
   // dynamic relocations).
   compute_preemptibility(ctx)
@@ -180,6 +183,7 @@ pub fn link_write(ctx : Ctx) -> Unit {
   // 9b. Script symbols (sym = .) need final addresses, and the .symtab
   // content below must see them.
   define_script_symbols(ctx)
+  fixup_reserved_symbols(ctx, secs, combined)
   // 10. Build synthetic contents (needs final addresses), then file offsets.
   let pre = build_synthetic_contents(
     ctx, secs, symtab, strtab, shstrtab, got, scan, bss, comment,
@@ -343,6 +347,30 @@ fn mark_live(ctx : Ctx) -> Unit {
           }
         }
       _ => ()
+    }
+  }
+  // Exported symbols of shared libraries are roots (lld MarkLive).
+  if ctx.config.shared {
+    for ref_ in ctx.symtab.symbols() {
+      let sym = ref_.sym
+      let exported = match sym.kind {
+        Defined(d) => d.section is Some(_)
+        Common(_) => true
+        _ => false
+      }
+      if exported &&
+      sym.visibility == @elfspec.STV_DEFAULT &&
+      version_script_exports(ctx.version_script, sym.name, true) {
+        match sym.kind {
+          Defined(d) =>
+            match d.section {
+              Some(sec) => enqueue(sec)
+              None => ()
+            }
+          Common(_) => ()
+          _ => ()
+        }
+      }
     }
   }
   // Entry symbol's section is a root.
@@ -708,6 +736,7 @@ fn define_script_symbols(ctx : Ctx) -> Unit {
         let payload : DefinedData = {
           file: InternalRef,
           section: None,
+          outsec: None,
           value: dot - ctx.config.image_base,
           size: 0L,
           is_weak: false,
@@ -742,6 +771,148 @@ fn elem_name(e : ScriptElem) -> Bytes {
   match e {
     Outsec(name, _) => name
     _ => b""
+  }
+}
+
+///|
+/// Early definition of linker-provided reserved symbols (lld
+/// addReservedSymbols). Only fills placeholders: user or script definitions
+/// always win.
+fn define_reserved_symbols_early(ctx : Ctx) -> Unit {
+  let names : Array[(Bytes, Bytes)] = [
+    (b"__executable_start", b"ehdr"),
+    (b"__ehdr_start", b"ehdr"),
+    (b"_end", b"end"),
+    (b"end", b"end"),
+    (b"_edata", b"edata"),
+    (b"edata", b"edata"),
+    (b"_etext", b"etext"),
+    (b"etext", b"etext"),
+    (b"__bss_start", b"bss_start"),
+    (b"bss_start", b"bss_start"),
+    (b"_DYNAMIC", b"dynamic"),
+    (b"_GLOBAL_OFFSET_TABLE_", b"got"),
+  ]
+  for pair in names {
+    let name = pair.0
+    let kind = pair.1
+    let ref_ = ctx.symtab.insert(name)
+    // addOptionalRegular semantics: define unless already Defined/Shared/
+    // Common — undefined references (from inputs) resolve to these symbols.
+    if ref_.sym.file_is_internal() || ref_.sym.is_undefined() {
+      ref_.sym.kind = Defined({
+        file: InternalRef,
+        section: None,
+        outsec: None,
+        value: 0L,
+        size: 0L,
+        is_weak: false,
+      })
+      ref_.sym.binding = @elfspec.STB_GLOBAL
+      ref_.sym.stype = @elfspec.STT_NOTYPE
+      ctx.reserved.push((ref_, kind))
+    }
+  }
+}
+
+///|
+/// Anchors reserved symbols to their output sections once addresses exist.
+fn fixup_reserved_symbols(ctx : Ctx, secs : Array[OutSec], combined : Array[OutSec]) -> Unit {
+  let mut last_alloc : OutSec? = None
+  let mut last_load : OutSec? = None
+  let mut last_exec : OutSec? = None
+  let mut first_nobits : OutSec? = None
+  let mut dyn_sec : OutSec? = None
+  let mut gotplt : OutSec? = None
+  let mut got : OutSec? = None
+  let mut end_va : Int64 = 0L
+  let mut edata_va : Int64 = 0L
+  let mut etext_va : Int64 = 0L
+  for sec in combined {
+    if sec.pseudo {
+      continue
+    }
+    if sec.name == b".dynamic" {
+      dyn_sec = Some(sec)
+    } else if sec.name == b".got.plt" {
+      gotplt = Some(sec)
+    } else if sec.name == b".got" {
+      got = Some(sec)
+    }
+    if !sec.is_alloc() {
+      continue
+    }
+    let e = sec.addr + sec.size
+    if e >= end_va {
+      end_va = e
+      last_alloc = Some(sec)
+    }
+    if sec.stype != @elfspec.SHT_NOBITS {
+      if e >= edata_va {
+        edata_va = e
+        last_load = Some(sec)
+      }
+    } else if first_nobits is None {
+      first_nobits = Some(sec)
+    }
+    if has_flag(sec.flags, @elfspec.SHF_EXECINSTR) && e >= etext_va {
+      etext_va = e
+      last_exec = Some(sec)
+    }
+  }
+  let _ = secs
+  for pair in ctx.reserved {
+    let ref_ = pair.0
+    let kind = pair.1
+    let anchor : (OutSec?, Int64) = match kind {
+      k if k == b"end" =>
+        match last_alloc {
+          Some(s) => (Some(s), end_va - s.addr)
+          None => (None, 0L)
+        }
+      k if k == b"edata" =>
+        match last_load {
+          Some(s) => (Some(s), edata_va - s.addr)
+          None => (None, 0L)
+        }
+      k if k == b"etext" =>
+        match last_exec {
+          Some(s) => (Some(s), etext_va - s.addr)
+          None => (None, 0L)
+        }
+      k if k == b"bss_start" =>
+        match first_nobits {
+          Some(s) => (Some(s), 0L)
+          None => (None, edata_va - ctx.config.image_base)
+        }
+      k if k == b"dynamic" =>
+        match dyn_sec {
+          Some(s) => (Some(s), 0L)
+          None => (None, 0L)
+        }
+      k if k == b"got" =>
+        match gotplt {
+          Some(g) => (Some(g), 0L)
+          None =>
+            match got {
+              Some(g) => (Some(g), 0L)
+              None => (None, 0L)
+            }
+        }
+      _ => (None, 0L) // ehdr: absolute at image base
+    }
+    match anchor {
+      (os, value) => {
+        ref_.sym.kind = Defined({
+          file: InternalRef,
+          section: None,
+          outsec: os,
+          value,
+          size: 0L,
+          is_weak: false,
+        })
+      }
+    }
   }
 }
 

@@ -129,6 +129,7 @@ pub struct Ctx {
   mut script : Script?
   script_outsecs : Map[Bytes, OutSec]
   mut version_script : VersionScript?
+  reserved : Array[(SymRef, Bytes)]
 }
 pub fn Ctx::extract_member(Self, ArchiveFile, Int32) -> Unit
 pub fn Ctx::load_file(Self, Bytes) -> Unit
@@ -137,6 +138,7 @@ pub fn Ctx::new(Config, @support.Diag) -> Self
 pub(all) struct DefinedData {
   file : FileRef
   section : InputSection?
+  mut outsec : OutSec?
   value : Int64
   size : Int64
   mut is_weak : Bool
@@ -334,6 +336,7 @@ pub(all) struct SymAux {
   mut got_index : Int32
   mut has_plt : Bool
   mut plt_index : Int32
+  mut has_dynref : Bool
 }
 
 pub(all) enum SymKind {

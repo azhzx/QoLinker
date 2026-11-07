@@ -83,7 +83,7 @@ pub fn SymbolTable::insert(self : SymbolTable, name : Bytes) -> SymRef {
           is_exported: false,
           is_preemptible: false,
           has_version_suffix: false,
-          aux: { has_got: false, got_index: -1, has_plt: false, plt_index: -1, },
+          aux: { has_got: false, got_index: -1, has_plt: false, plt_index: -1, has_dynref: false, },
         },
       }
       self.next_id += 1
@@ -208,6 +208,7 @@ fn SymbolTable::resolve_defined(
   let payload : DefinedData = {
     file: new.file,
     section: new.section,
+    outsec: None,
     value: new.value,
     size: new.size,
     is_weak: new.binding == @elfspec.STB_WEAK,
