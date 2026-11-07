@@ -34,10 +34,20 @@ LIBC=$(ldd /bin/true 2>/dev/null | grep libc.so.6 | awk '{print $3}' | head -1)
 if [ -n "$LIBC" ]; then
   "$QO" -o "$FX/dyn" "$FX/hello.o.dyn" 2>/dev/null || true
   llvm-mc -filetype=obj -triple=x86_64-unknown-linux -o "$FX/hello_dyn.o" testdata/hello_dyn.s
-  "$QO" -o "$FX/dyn" "$FX/hello_dyn.o" "$LIBC"
+  # Diagnostics: does ld.so survive startup relocation processing?
+  if LD_TRACE_LOADED_OBJECTS=1 "$FX/dyn" > "$FX/trace.txt" 2>&1; then
+    echo "ld.so trace ok:"; cat "$FX/trace.txt" | head -3
+  else
+    echo "FAIL: ld.so crashed during startup (trace)"; exit 1
+  fi
+  if LD_BIND_NOW=1 "$FX/dyn" > "$FX/dyn_now.txt" 2>&1; then
+    echo "PASS run dynamic (BIND_NOW non-lazy)"
+  else
+    echo "FAIL dynamic BIND_NOW: exit $?"; exit 1
+  fi
   out=$("$FX/dyn"); code=$?
-  [ "$code" = 0 ] && [ "$out" = "hello dynamic" ] || { echo "FAIL dyn: code=$code out=$out"; exit 1; }
-  echo "PASS run dynamic (glibc via PLT)"
+  [ "$code" = 0 ] && [ "$out" = "hello dynamic" ] || { echo "FAIL dyn lazy: code=$code out=$out"; exit 1; }
+  echo "PASS run dynamic (glibc via PLT, lazy binding)"
 else
   echo "SKIP dynamic (no libc.so.6 found)"
 fi
