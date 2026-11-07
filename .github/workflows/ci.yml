@@ -38,8 +38,9 @@ jobs:
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Install LLVM tools
         run: |
-          brew install llvm@21
+          brew install llvm@21 lld
           echo "$(brew --prefix llvm@21)/bin" >> $GITHUB_PATH
+          echo "$(brew --prefix lld)/bin" >> $GITHUB_PATH
       - name: Check
         run: moon check
       - name: Test
