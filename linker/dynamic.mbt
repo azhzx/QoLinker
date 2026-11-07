@@ -73,7 +73,7 @@ pub fn dyn_hash_content(names : Array[Bytes]) -> Bytes {
   for i in 0..<nbucket {
     buf.write_uint_le(buckets[i].to_int().reinterpret_as_uint())
   }
-  for i in 0..<n + 1 {
+  for i in 0..<(n + 1) {
     buf.write_uint_le(chains[i].to_int().reinterpret_as_uint())
   }
   buf.to_bytes()
