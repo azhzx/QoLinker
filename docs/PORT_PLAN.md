@@ -302,3 +302,20 @@ CI：`.github/workflows/ci.yml` —— ubuntu（全量：moon test + lit 子集 
    - macOS 宿主自动跳过执行（结构验证由 golden 覆盖）。
 
 全量状态：golden 12/12 · moon test 11/11 · moon check 0 错误 · ~8.8k 行 MoonBit。
+
+## CI 全绿（2026-11-07）
+
+仓库：https://github.com/azhzx/QoLinker（public，main 分支）
+
+CI 首次双平台通过（run 42375139936）：
+- **linux**：moon check / test(11) / release build / golden 12 项与 ld.lld 对比 /
+  **执行冒烟全部通过**——静态 hello、多文件、归档懒提取、--gc-sections、
+  动态 glibc printf@PLT（BIND_NOW 与 **lazy 绑定**两种模式，输出 "hello dynamic"）。
+- **macos**：check / test / build / golden 全过（需单独安装 lld 公式）。
+
+动态链接三轮调试实录（由 CI 驱动定位）：
+1. SysV `.hash` 链表数组须含 nchain=n+1 项（少一项 → ld.so 启动 OOB 段错误）。
+2. lazy 绑定下 GOTPLT 槽初值必须**总是**指向 PLT push 序列（可抢占符号也如此；
+   写 0 会在首次调用时跳零页）。BIND_NOW 通过而 lazy 崩溃即为指纹。
+3. 动态测试 fixture 用 libc `exit()` 而非裸 sys_exit，否则 stdio 缓冲不刷新、
+   printf 输出丢失（exit code 0 但输出为空）。
