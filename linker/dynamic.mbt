@@ -168,12 +168,10 @@ pub fn dyn_gotplt_content(
   buf.write_int64_le(0L)
   buf.write_int64_le(0L)
   for i in 0..<scan.plt_syms.length() {
-    let sym = scan.plt_syms[i].sym
-    if sym.is_preemptible || sym_is_strong_undef(sym) {
-      buf.write_int64_le(0L)
-    } else {
-      buf.write_int64_le(plt_addr + 16L + i.to_int64() * 16L + 6L)
-    }
+    // Every JUMP_SLOT slot initially points back at its PLT entry's push
+    // instruction: the first call bounces through the resolver, which then
+    // overwrites the slot (BIND_NOW overwrites at startup instead).
+    buf.write_int64_le(plt_addr + 16L + i.to_int64() * 16L + 6L)
   }
   let _ = ctx
   buf.to_bytes()

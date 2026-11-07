@@ -281,17 +281,13 @@ pub fn classify_reloc(
       } else {
         Some(Static)
       }
-    t if t == @elfspec.R_X86_64_PC32 || t == @elfspec.R_X86_64_PLT32 => {
-      if ref_ is Some(rr) {
-
-      }
+    t if t == @elfspec.R_X86_64_PC32 || t == @elfspec.R_X86_64_PLT32 =>
       if ref_ is Some(ref_) && sym_needs_dyn_access(ref_.sym) {
         ignore(scan.plt_slot(ref_))
         Some(PltCall)
       } else {
         Some(Static)
       }
-    }
     t if t == @elfspec.R_X86_64_32 =>
       if ref_ is Some(ref_) && sym_needs_dyn_access(ref_.sym) {
         let e : RelaEntry = {
