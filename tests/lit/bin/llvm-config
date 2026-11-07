@@ -1,0 +1,6 @@
+#!/bin/sh
+case "$1" in
+  --targets-built) echo "X86" ;;
+  --assertion-mode) echo "ON" ;;
+  *) echo "" ;;
+esac

@@ -5,6 +5,7 @@ pub(all) struct Config {
   mut output : Bytes
   mut entry : Bytes
   mut entry_given : Bool
+  defsyms : Array[Bytes]
   inputs : Array[Bytes]
   mut shared : Bool
   mut pie : Bool
@@ -30,6 +31,7 @@ fn default_config() -> Config {
     output: b"a.out",
     entry: b"_start",
     entry_given: false,
+    defsyms: [],
     inputs: [],
     shared: false,
     pie: false,
@@ -52,6 +54,10 @@ fn default_config() -> Config {
 ///|
 /// Options whose next argument is a value we accept and ignore.
 let value_ignored_opts : Array[String] = [
+  "--script", "--defsym", "-soname", "--exclude-libs", "--lto-O", "--lto-partitions",
+  "--thinlto-jobs", "--thinlto-cache-dir", "--lto-cache-dir", "--dependency-file",
+  "--symbol-ordering-file", "--call-graph-profile-sort", "--orphan-handling",
+  "--section-start", "--spare-dynamic-tags", "--opt-bisect-limit", "--print-memory-usage",
   "-m", "-O", "--hash-style", "-plugin", "--sysroot", "--sort-section", "--icf",
   "--compression-level", "-e", "--entry", "-T",
 ]
@@ -62,6 +68,13 @@ let flag_ignored_opts : Array[String] = [
   "--start-group", "--end-group", "--no-undefined", "--noinhibit-exec", "--allow-multiple-definition",
   "--fatal-warnings", "--no-fatal-warnings", "--no-demangle", "--demangle", "--color-diagnostics=auto",
   "--enable-new-dtags", "--disable-new-dtags", "--no-undefined-version", "--as-needed",
+  "--eh-frame-hdr", "--no-eh-frame-hdr", "-save-temps", "--save-temps",
+  "--no-save-temps", "--apply-dynamic-relocs", "--push-state", "--pop-state",
+  "--start-lib", "--end-lib", "--nostdlib", "--no-copy-dt-needed-entries",
+  "--warn-common", "--no-warn-common", "--no-mmap-output-file", "--full-shutdown",
+  "--no-threads", "--thinlto-emit-indexes", "--reverse-sections", "--no-relax",
+  "--execute-only", "--no-execute-only", "--separate-code", "--no-separate-code",
+  "--rosegment", "--no-rosegment", "--xosegment", "--no-xosegment",
 ]
 
 ///|
@@ -233,6 +246,26 @@ pub fn parse_args(args : Array[Bytes], diag : @support.Diag) -> Config? {
       }
     } else if starts_with(arg, "-l") {
       cfg.inputs.push(resolve_library(cfg, a[2:].to_owned(), diag))
+      i += 1
+    } else if starts_with(arg, "--script=") {
+      cfg.script = Some(a[9:].to_owned())
+      i += 1
+    } else if starts_with(arg, "-soname=") || starts_with(arg, "--soname=") {
+      ignore(a) // SONAME of -shared outputs: recorded with -shared emit later
+      i += 1
+    } else if starts_with(arg, "--defsym=") {
+      // sym=value: MVP accepts and defines the symbol at link time via the
+      // script symbol walker; value expressions other than numbers are not
+      // supported yet.
+      cfg.defsyms.push(a[9:].to_owned())
+      i += 1
+    } else if starts_with(arg, "--hash-style=") || starts_with(arg, "--icf=") ||
+    starts_with(arg, "--opt-bisect-limit=") || starts_with(arg, "-O") ||
+    starts_with(arg, "--lto-O") || starts_with(arg, "--plugin-opt=") ||
+    starts_with(arg, "-melf") || starts_with(arg, "--build-id=") ||
+    starts_with(arg, "--orphan-handling=") || starts_with(arg, "--sort-section=") ||
+    starts_with(arg, "--exclude-libs=") || starts_with(arg, "--spare-dynamic-tags=") ||
+    starts_with(arg, "--section-start=") {
       i += 1
     } else if is_flag_ignored(arg) || is_value_ignored(arg) {
       i += if is_value_ignored(arg) { 2 } else { 1 }

@@ -383,6 +383,7 @@ pub fn dyn_interp_content() -> Bytes {
 /// exports (preemptible definitions), in symtab insertion order.
 pub fn scan_needs_dynsym(ctx : Ctx, scan : ScanResult) -> Array[SymRef] {
   let out : Array[SymRef] = []
+  let dyn_output = ctx.config.shared || ctx.config.pie
   for ref_ in ctx.symtab.symbols() {
     let sym = ref_.sym
     let mut include = false
@@ -394,7 +395,14 @@ pub fn scan_needs_dynsym(ctx : Ctx, scan : ScanResult) -> Array[SymRef] {
         Lazy(_) => ()
       }
     }
-    if !include && (ctx.config.shared || ctx.config.pie) && sym.is_preemptible {
+    // Strong undefined references in dynamic outputs are imports.
+    if !include && dyn_output {
+      match sym.kind {
+        Undefined(d) => if !d.is_weak { include = true }
+        _ => ()
+      }
+    }
+    if !include && dyn_output && sym.is_preemptible {
       match sym.kind {
         Defined(_) | Common(_) => include = true
         _ => ()

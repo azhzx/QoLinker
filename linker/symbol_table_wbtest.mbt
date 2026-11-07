@@ -23,6 +23,7 @@ fn test_ctx() -> Ctx {
     as_needed: true,
     search_static: false,
     z_separate_code: false,
+    defsyms: [],
   }
   Ctx::new(cfg, diag)
 }

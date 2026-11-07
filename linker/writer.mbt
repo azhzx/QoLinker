@@ -191,7 +191,31 @@ pub fn link_write(ctx : Ctx) -> Unit {
   let entry : Int64 = if ctx.config.shared {
     0L
   } else {
-    resolve_entry(ctx, secs)
+    match ctx.symtab.find(ctx.config.entry) {
+      Some(ref_) =>
+        match ref_.sym.kind {
+          Defined(_) => ref_.sym.get_va(ctx)
+          Common(_) => common_va(ctx, ref_.sym.name)
+          _ =>
+            // lld: a missing default entry only warns; an explicit -e is
+            // an error.
+            if ctx.config.entry_given {
+              ctx.diag.error("undefined entry symbol: \{@support.bytes_str(ctx.config.entry)}")
+              0L
+            } else {
+              ctx.diag.warn("cannot find entry symbol \{@support.bytes_str(ctx.config.entry)}; defaulting to zero")
+              0L
+            }
+        }
+      None =>
+        if ctx.config.entry_given {
+          ctx.diag.error("undefined entry symbol: \{@support.bytes_str(ctx.config.entry)}")
+          0L
+        } else {
+          ctx.diag.warn("cannot find entry symbol \{@support.bytes_str(ctx.config.entry)}; defaulting to zero")
+          0L
+        }
+    }
   }
   check_undefined(ctx)
   ctx.diag.finish()
@@ -753,6 +777,12 @@ fn resolve_entry(ctx : Ctx, secs : Array[OutSec]) -> Int64 {
 ///|
 /// Reports strong undefined symbols (lld's reportUndefinedSymbols).
 fn check_undefined(ctx : Ctx) -> Unit {
+  // Dynamic outputs (-shared/-pie) may have undefined symbols: they become
+  // .dynsym imports resolved at runtime (lld resolves them per --no-undefined
+  // only). Static executables error.
+  if ctx.config.shared || ctx.config.pie {
+    return
+  }
   let seen : Map[Bytes, Unit] = Map([])
   for ref_ in ctx.symtab.symbols() {
     let sym = ref_.sym

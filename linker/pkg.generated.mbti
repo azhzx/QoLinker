@@ -100,6 +100,7 @@ pub(all) struct Config {
   mut output : Bytes
   mut entry : Bytes
   mut entry_given : Bool
+  defsyms : Array[Bytes]
   inputs : Array[Bytes]
   mut shared : Bool
   mut pie : Bool

@@ -319,3 +319,23 @@ CI 首次双平台通过（run 42375139936）：
    写 0 会在首次调用时跳零页）。BIND_NOW 通过而 lazy 崩溃即为指纹。
 3. 动态测试 fixture 用 libc `exit()` 而非裸 sys_exit，否则 stdio 缓冲不刷新、
    printf 输出丢失（exit code 0 但输出为空）。
+
+## lit 官方测试子集接入（2026-11-07）
+
+**Harness**（tests/lit/）：`run_lit.sh` 将 QoLinker 二进制 symlink 为
+ld.lld/ld64.lld/lld-link/wasm-ld + 伪造 llvm-config（features: x86+asserts），
+生成 site cfg（lit.llvm.initialize + 加载 lld 原生 lit.cfg.py）后直接运行
+llvm-project 的 test/ELF（2048 个测试）。无需修改任何上游测试文件。
+
+**基线**：Passed 59 / Expectedly Failed 1 / Unsupported 13 / Failed 1975。
+
+**失败主因分布**（按出现次数）：
+1. FileCheck 输出不匹配（~750）——符号表/布局细节差异，逐项收敛的主体
+2. 未定义入口符号（146→已修复为警告化）
+3. `-r` relocatable 输出未实现（66）
+4. `<stdin>` 管道类（57）
+5. linker script 解析子集不足（38）
+6. 选项长尾（已批量接受-ignore）
+
+**收割策略**：按 lit 过滤器分域跑（basic/gc-sections/segments/script*），
+逐域对齐输出细节；未实现特性先加 `--filter` 排除清单保证度量有效。
