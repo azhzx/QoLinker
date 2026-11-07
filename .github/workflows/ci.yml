@@ -1,0 +1,48 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+      - name: Install LLVM tools (ld.lld, llvm-mc, llvm-readelf, llvm-ar)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lld llvm clang
+      - name: Check
+        run: moon check
+      - name: Test
+        run: moon test --target native
+      - name: Build (release)
+        run: moon build --target native --release cmd/main
+      - name: Golden diff vs ld.lld
+        run: sh tests/golden.sh
+      - name: Execution smoke tests
+        run: bash tests/smoke.sh
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+      - name: Install LLVM tools
+        run: brew install llvm@21 && brew link --force llvm@21 || true
+      - name: Check
+        run: moon check
+      - name: Test
+        run: moon test --target native
+      - name: Build
+        run: moon build --target native --release cmd/main
+      - name: Golden diff vs ld.lld
+        run: sh tests/golden.sh

@@ -1,0 +1,6 @@
+[submodule "vendor/mold"]
+	path = vendor/mold
+	url = https://github.com/rui314/mold.git
+[submodule "vendor/wild"]
+	path = vendor/wild
+	url = https://github.com/wild-linker/wild.git

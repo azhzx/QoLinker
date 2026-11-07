@@ -1,0 +1,7 @@
+import {
+  "azhzx/QoLinker/elfspec",
+  "azhzx/QoLinker/elffile",
+  "azhzx/QoLinker/support",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
+}

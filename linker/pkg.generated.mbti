@@ -1,0 +1,418 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "azhzx/QoLinker/linker"
+
+import {
+  "azhzx/QoLinker/elffile",
+  "azhzx/QoLinker/support",
+  "moonbitlang/core/buffer",
+}
+
+// Values
+pub const INTERP_PATH : Bytes = b"/lib64/ld-linux-x86-64.so.2"
+
+pub const SHT_GNU_verdef : Int32 = 0x6ffffffc
+
+pub const SHT_GNU_verneed : Int32 = 0x6ffffffe
+
+pub const SHT_GNU_versym : Int32 = 0x6fffffff
+
+pub fn allocate_commons(Ctx, OutSec) -> Unit
+
+pub fn apply_reloc(Ctx, ScanResult, ObjFile, InputSection, FixedArray[Byte], @elffile.Rela, DynAction, OutSec?, OutSec?) -> Bool
+
+pub fn apply_relocs(Ctx, ScanResult, ObjFile, InputSection, FixedArray[Byte], OutSec?, OutSec?) -> Bool
+
+pub fn build_dyn_out(Ctx, ScanResult, Array[Bytes], StrTabBuilder, OutSec, OutSec, OutSec, OutSec, OutSec?, OutSec?, OutSec?, OutSec?, Array[OutSec]) -> DynOut
+
+pub fn build_symtab(Ctx, StrTabBuilder, OutSec?) -> (Bytes, Int32)
+
+pub fn classify_reloc(Ctx, ScanResult, ObjFile, InputSection, @elffile.Rela, Int32, Bool) -> DynAction?
+
+pub fn common_va(Ctx, Bytes) -> Int64
+
+pub fn compute_preemptibility(Ctx) -> Unit
+
+pub fn dyn_got_content(Ctx, ScanResult) -> Bytes
+
+pub fn dyn_gotplt_content(Ctx, ScanResult, Int64, Int64) -> Bytes
+
+pub fn dyn_hash_content(Array[Bytes]) -> Bytes
+
+pub fn dyn_interp_content() -> Bytes
+
+pub fn dyn_plt_content(Int32) -> Bytes
+
+pub fn elf_hash(Bytes) -> Int32
+
+pub fn entry_place(RelaEntry, OutSec?, OutSec?) -> Int64
+
+pub fn file_basename(Bytes) -> Bytes
+
+pub fn has_flag(Int64, Int32) -> Bool
+
+pub fn link_write(Ctx) -> Unit
+
+pub fn parse_archive_file(Ctx, Bytes, Bytes) -> ArchiveFile?
+
+pub fn parse_args(Array[Bytes], @support.Diag) -> Config?
+
+pub fn parse_object(Ctx, Bytes, Bytes) -> ObjFile?
+
+pub fn parse_script(Bytes, @support.Diag) -> Script?
+
+pub fn parse_shared(Ctx, Bytes, Bytes) -> SharedFile?
+
+pub fn parse_version_script(Bytes, @support.Diag) -> VersionScript?
+
+pub fn patch_plt(FixedArray[Byte], Int64, Int64, Int32) -> Unit
+
+pub fn pattern_match(Bytes, Bytes) -> Bool
+
+pub fn reloc_sym_va(Ctx, ObjFile, Int32) -> Int64?
+
+pub fn run_link(Array[Bytes]) -> Unit
+
+pub fn scan_needs_dynsym(Ctx, ScanResult) -> Array[SymRef]
+
+pub fn scan_relocations(Ctx, ScanResult) -> Unit
+
+pub fn stable_sort_outsecs(Array[OutSec]) -> Unit
+
+pub fn version_script_exports(VersionScript?, Bytes, Bool) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) struct ArchiveFile {
+  path : Bytes
+  data : Bytes
+  archive : @elffile.Archive
+  mut extracted : Map[Int32, ObjFile]
+}
+
+pub(all) struct CommonData {
+  mut file : FileRef
+  mut size : Int64
+  mut alignment : Int64
+}
+
+pub(all) struct Config {
+  mut output : Bytes
+  mut entry : Bytes
+  mut entry_given : Bool
+  inputs : Array[Bytes]
+  mut shared : Bool
+  mut pie : Bool
+  mut gc_sections : Bool
+  mut image_base : Int64
+  page_size : Int64
+  library_paths : Array[Bytes]
+  mut map_file : Bytes?
+  mut script : Bytes?
+  mut version_script : Bytes?
+  mut build_id : Bool
+  mut export_dynamic : Bool
+  mut whole_archive : Bool
+  mut as_needed : Bool
+  mut search_static : Bool
+  mut z_separate_code : Bool
+}
+
+pub struct Ctx {
+  config : Config
+  diag : @support.Diag
+  symtab : SymbolTable
+  files : Array[FileRef]
+  common_alloc : Map[Bytes, Int64]
+  mut common_bss : OutSec?
+  mut script : Script?
+  script_outsecs : Map[Bytes, OutSec]
+  mut version_script : VersionScript?
+}
+pub fn Ctx::extract_member(Self, ArchiveFile, Int32) -> Unit
+pub fn Ctx::load_file(Self, Bytes) -> Unit
+pub fn Ctx::new(Config, @support.Diag) -> Self
+
+pub(all) struct DefinedData {
+  file : FileRef
+  section : InputSection?
+  value : Int64
+  size : Int64
+  mut is_weak : Bool
+}
+
+pub(all) enum DynAction {
+  Static
+  PltCall
+  GotPcRel
+  GotDynamicPc
+  GotAbs
+  DynRela(RelaEntry)
+}
+
+pub(all) struct DynOut {
+  interp : Bytes
+  dynsym : Bytes
+  dynstr : Bytes
+  hash : Bytes
+  reladyn : Bytes
+  relaplt : Bytes
+  got : Bytes
+  gotplt : Bytes
+  plt : Bytes
+  dynamic : Bytes
+  needed_names : Array[Bytes]
+}
+
+pub(all) enum DynPlace {
+  GotSlot(Int32)
+  GotPltSlot(Int32)
+  Place(InputSection, Int64)
+}
+
+pub(all) enum FileRef {
+  ObjRef(ObjFile)
+  SharedRef(SharedFile)
+  ArchiveRef(ArchiveFile)
+  InternalRef
+}
+
+pub(all) struct InputSection {
+  file : FileRef
+  sec_index : Int32
+  name : Bytes
+  stype : Int32
+  flags : Int64
+  offset : Int32
+  size : Int64
+  addralign : Int64
+  link : Int32
+  info : Int32
+  entsize : Int64
+  mut relas : FixedArray[@elffile.Rela]
+  mut dyn_actions : FixedArray[DynAction]?
+  mut out_sec : OutSec?
+  mut live : Bool
+  mut discarded : Bool
+  mut addr : Int64
+  mut out_off : Int64
+}
+
+pub(all) struct LazyData {
+  archive : ArchiveFile
+  member_index : Int32
+}
+
+pub(all) struct NewSym {
+  name : Bytes
+  file : FileRef
+  binding : Int32
+  stype : Int32
+  visibility : Int32
+  section : InputSection?
+  value : Int64
+  size : Int64
+  alignment : Int64
+  archive : ArchiveFile?
+  member_index : Int32
+  version : Bytes
+}
+
+pub(all) struct ObjFile {
+  path : Bytes
+  data : Bytes
+  reader : @elffile.ElfReader
+  sections : Array[InputSection?]
+  sym_refs : Array[SymRef?]
+  raw_syms : Array[@elffile.ElfSym]
+  mut symtab_idx : Int32
+  mut strtab_idx : Int32
+  mut alive : Bool
+}
+
+pub(all) struct OutSec {
+  name : Bytes
+  mut stype : Int32
+  mut flags : Int64
+  mut addralign : Int64
+  mut entsize : Int64
+  mut inputs : Array[InputSection]
+  synth : SynthKind
+  mut addr : Int64
+  mut offset : Int64
+  mut size : Int64
+  mut shndx : Int32
+  mut sort_rank : Int32
+  mut relro : Bool
+  mut load_flags : Int32
+  mut in_load : Bool
+  mut load_idx : Int32
+  mut load_first : Bool
+  oid : Int32
+  pseudo : Bool
+}
+
+pub(all) struct Phdr {
+  ptype : Int32
+  mut flags : Int32
+  mut first : OutSec?
+  mut last : OutSec?
+  mut memsz_extra : Int64
+}
+
+pub(all) struct Prebuilt {
+  symtab_content : Bytes
+  local_count : Int32
+  strtab_content : Bytes
+  shstr_content : Bytes
+  name_off : Map[Bytes, Int32]
+  got_content : Bytes?
+  got_sec : OutSec?
+  comment_content : Bytes?
+}
+
+pub(all) struct RelaEntry {
+  rtype : Int32
+  sym : SymRef?
+  addend : Int64
+  place : DynPlace
+}
+
+pub struct ScanResult {
+  got_syms : Array[SymRef]
+  got_index : Map[Int32, Int32]
+  mut needs_got : Bool
+  plt_syms : Array[SymRef]
+  plt_index : Map[Int32, Int32]
+  mut needs_plt : Bool
+  reladyn : Array[RelaEntry]
+  relaplt : Array[RelaEntry]
+  mut needs_dyn : Bool
+}
+pub fn ScanResult::new() -> Self
+
+pub struct Script {
+  elems : Array[ScriptElem]
+  mut image_base : Int64?
+  mut entry : Bytes?
+}
+
+pub(all) enum ScriptElem {
+  Entry(Bytes)
+  DotAssign(Int64)
+  Assign(Bytes, Int64, Bool)
+  Outsec(Bytes, Array[Bytes])
+}
+
+pub(all) struct SharedData {
+  file : FileRef
+  size : Int64
+}
+
+pub(all) struct SharedFile {
+  path : Bytes
+  data : Bytes
+  reader : @elffile.ElfReader
+  mut so_name : Bytes
+  needed : Array[Bytes]
+  mut is_needed : Bool
+  versyms : Array[Bytes]
+}
+
+pub struct StrTabBuilder {
+  buf : @buffer.Buffer
+  map : Map[Bytes, Int32]
+}
+pub fn StrTabBuilder::add(Self, Bytes) -> Int32
+pub fn StrTabBuilder::new() -> Self
+pub fn StrTabBuilder::size(Self) -> Int32
+pub fn StrTabBuilder::to_bytes(Self) -> Bytes
+
+pub(all) struct SymAux {
+  mut has_got : Bool
+  mut got_index : Int32
+  mut has_plt : Bool
+  mut plt_index : Int32
+}
+
+pub(all) enum SymKind {
+  Defined(DefinedData)
+  Undefined(UndefData)
+  Shared(SharedData)
+  Common(CommonData)
+  Lazy(LazyData)
+}
+
+pub(all) struct SymRef {
+  mut sym : Symbol
+}
+
+pub(all) struct Symbol {
+  aux_id : Int32
+  name : Bytes
+  mut kind : SymKind
+  mut binding : Int32
+  mut stype : Int32
+  mut visibility : Int32
+  mut is_exported : Bool
+  mut is_preemptible : Bool
+  mut has_version_suffix : Bool
+  aux : SymAux
+}
+pub fn Symbol::is_common(Self) -> Bool
+pub fn Symbol::is_defined(Self) -> Bool
+pub fn Symbol::is_lazy(Self) -> Bool
+pub fn Symbol::is_undefined(Self) -> Bool
+
+pub struct SymbolTable {
+  map : Map[Bytes, SymRef]
+  mut next_id : Int32
+  comdat_groups : Map[Bytes, FileRef]
+  diag : @support.Diag
+  duplicate_reported : Map[Bytes, Unit]
+  mut ctx : Ctx?
+}
+pub fn SymbolTable::add_common_symbol(Self, NewSym) -> Unit
+pub fn SymbolTable::add_defined_symbol(Self, NewSym) -> SymRef
+pub fn SymbolTable::add_lazy_symbol(Self, NewSym) -> Unit
+pub fn SymbolTable::add_shared_symbol(Self, NewSym) -> Unit
+pub fn SymbolTable::add_undefined_symbol(Self, NewSym) -> Unit
+pub fn SymbolTable::find(Self, Bytes) -> SymRef?
+pub fn SymbolTable::insert(Self, Bytes) -> SymRef
+pub fn SymbolTable::new(@support.Diag) -> Self
+pub fn SymbolTable::symbols(Self) -> Array[SymRef]
+
+pub(all) enum SynthKind {
+  NotSynth
+  Comment
+  SymTab
+  StrTab
+  ShStrTab
+  Bss
+  Got
+  GotPlt
+  Plt
+  RelaDyn
+  RelaPlt
+  DynSymTab
+  DynStrTab
+  Dynamic
+  VerSym
+  VerNeed
+  GnuHash
+}
+
+pub(all) struct UndefData {
+  file : FileRef
+  mut is_weak : Bool
+  mut referenced : Bool
+}
+
+pub struct VersionScript {
+  global : Array[Bytes]
+  local : Array[Bytes]
+}
+
+// Type aliases
+
+// Traits

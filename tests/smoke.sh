@@ -1,0 +1,44 @@
+#!/bin/bash
+# Execution smoke tests: link fixtures and RUN the products (Linux only —
+# the static fixtures use raw syscalls; the dynamic one needs glibc).
+set -e
+cd "$(dirname "$0")/.."
+if [ "$(uname)" != "Linux" ]; then
+  echo "SKIP: execution smoke requires a Linux host (CI runs this)."
+  exit 0
+fi
+QO="_build/native/release/build/cmd/main/main.exe"
+FX=/tmp/qolinker-smoke
+rm -rf "$FX" && mkdir -p "$FX"
+
+llvm-mc -filetype=obj -triple=x86_64-unknown-linux -o "$FX/hello.o" testdata/hello.s
+llvm-mc -filetype=obj -triple=x86_64-unknown-linux -o "$FX/main.o" testdata/main.s
+llvm-mc -filetype=obj -triple=x86_64-unknown-linux -o "$FX/lib.o" testdata/lib.s
+llvm-ar --format=gnu rcs "$FX/libhello.a" "$FX/lib.o"
+
+"$QO" -o "$FX/hello" "$FX/hello.o"
+out=$("$FX/hello"); code=$?
+[ "$code" = 0 ] && [ "$out" = "hi" ] || { echo "FAIL hello: code=$code out=$out"; exit 1; }
+echo "PASS run hello"
+
+"$QO" -o "$FX/multi" "$FX/main.o" "$FX/lib.o"
+"$FX/multi" && echo "PASS run multi"
+
+"$QO" -o "$FX/fromarch" "$FX/main.o" "$FX/libhello.a"
+"$FX/fromarch" && echo "PASS run archive member"
+
+"$QO" --gc-sections -o "$FX/gc" "$FX/hello.o"
+"$FX/gc" && echo "PASS run gc-sections"
+
+LIBC=$(ldd /bin/true 2>/dev/null | grep libc.so.6 | awk '{print $3}' | head -1)
+if [ -n "$LIBC" ]; then
+  "$QO" -o "$FX/dyn" "$FX/hello.o.dyn" 2>/dev/null || true
+  llvm-mc -filetype=obj -triple=x86_64-unknown-linux -o "$FX/hello_dyn.o" testdata/hello_dyn.s
+  "$QO" -o "$FX/dyn" "$FX/hello_dyn.o" "$LIBC"
+  out=$("$FX/dyn"); code=$?
+  [ "$code" = 0 ] && [ "$out" = "hello dynamic" ] || { echo "FAIL dyn: code=$code out=$out"; exit 1; }
+  echo "PASS run dynamic (glibc via PLT)"
+else
+  echo "SKIP dynamic (no libc.so.6 found)"
+fi
+echo "smoke done."

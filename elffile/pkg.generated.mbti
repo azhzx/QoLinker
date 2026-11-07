@@ -1,0 +1,103 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "azhzx/QoLinker/elffile"
+
+// Values
+pub fn i64_at(Bytes, Int32) -> Int64
+
+pub fn parse_archive(Bytes) -> Archive?
+
+pub fn parse_elf(Bytes) -> ElfReader?
+
+pub fn read_phdrs(Bytes, Int64, Int32) -> FixedArray[(Int32, Int32)]?
+
+pub fn read_relas(SecData) -> FixedArray[Rela]?
+
+pub fn read_syms(SecData) -> FixedArray[ElfSym]?
+
+pub fn section_data_raw(Bytes, Shdr) -> SecData?
+
+pub fn sym_name(SecData, Int32) -> Bytes
+
+pub fn u16_at(Bytes, Int32) -> Int32
+
+pub fn u32_at(Bytes, Int32) -> Int32
+
+pub fn u64_at(Bytes, Int32) -> Int64
+
+// Errors
+
+// Types and methods
+pub(all) struct Archive {
+  data : Bytes
+  thin : Bool
+  members : Array[ArchiveMember]
+  symbols : Array[(Bytes, Int32)]
+}
+pub fn Archive::member_data(Self, ArchiveMember) -> SecData?
+
+pub(all) struct ArchiveMember {
+  name : Bytes
+  offset : Int64
+  size : Int64
+  thin : Bool
+}
+
+pub(all) struct Ehdr {
+  etype : Int32
+  machine : Int32
+  entry : Int64
+  shoff : Int64
+  phoff : Int64
+  phnum : Int32
+  shnum : Int32
+  shstrndx : Int32
+}
+
+pub(all) struct ElfReader {
+  data : Bytes
+  ehdr : Ehdr
+  shdrs : FixedArray[Shdr]
+  shstrtab : SecData
+}
+pub fn ElfReader::section_data(Self, Shdr) -> SecData?
+pub fn ElfReader::section_name(Self, Shdr) -> Bytes
+
+pub(all) struct ElfSym {
+  name_off : Int32
+  binding : Int32
+  stype : Int32
+  visibility : Int32
+  shndx : Int32
+  value : Int64
+  size : Int64
+}
+
+pub(all) struct Rela {
+  offset : Int64
+  sym : Int32
+  rtype : Int32
+  addend : Int64
+}
+
+pub(all) struct SecData {
+  bytes : Bytes
+  offset : Int32
+  size : Int32
+}
+
+pub(all) struct Shdr {
+  name_off : Int32
+  stype : Int32
+  flags : Int64
+  addr : Int64
+  offset : Int64
+  size : Int64
+  link : Int32
+  info : Int32
+  addralign : Int64
+  entsize : Int64
+}
+
+// Type aliases
+
+// Traits

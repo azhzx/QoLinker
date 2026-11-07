@@ -1,0 +1,7 @@
+import {
+  "azhzx/QoLinker/linker",
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+}
+
+pkgtype(kind: "executable")

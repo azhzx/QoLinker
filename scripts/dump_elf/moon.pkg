@@ -1,0 +1,9 @@
+import {
+  "azhzx/QoLinker/elffile",
+  "azhzx/QoLinker/elfspec",
+  "azhzx/QoLinker/support",
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+}
+
+pkgtype(kind: "executable")

@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "azhzx/QoLinker/support"
+
+// Values
+pub fn align_to(Int64, Int64) -> Int64
+
+pub fn align_to_i(Int32, Int32) -> Int32
+
+pub fn bytes_str(Bytes) -> String
+
+pub fn close_fd(Int32) -> Unit
+
+pub fn create_file(Bytes) -> Int32?
+
+pub fn cstring_at(Bytes, Int32, Int32) -> Bytes
+
+pub fn eprint(String) -> Unit
+
+pub fn eprintln(String) -> Unit
+
+pub fn exit(Int32) -> Unit
+
+pub fn hex_u64(Int64) -> String
+
+pub fn is_aligned(Int64, Int64) -> Bool
+
+pub fn make_executable(Int32) -> Unit
+
+pub fn read_file(Bytes) -> Bytes?
+
+pub fn set_file_size(Int32, Int64) -> Bool
+
+pub fn write_at(Int32, Int64, Bytes) -> Bool
+
+// Errors
+
+// Types and methods
+pub struct Diag {
+  mut errors : Int32
+  mut warnings : Int32
+}
+pub fn Diag::error(Self, String) -> Unit
+pub fn Diag::fatal(Self, String) -> Unit
+pub fn Diag::finish(Self) -> Unit
+pub fn Diag::new() -> Self
+pub fn Diag::warn(Self, String) -> Unit
+
+// Type aliases
+
+// Traits
