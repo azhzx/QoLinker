@@ -32,8 +32,8 @@ echo "PASS run hello"
 
 LIBC=$(ldd /bin/true 2>/dev/null | grep libc.so.6 | awk '{print $3}' | head -1)
 if [ -n "$LIBC" ]; then
-  "$QO" -o "$FX/dyn" "$FX/hello.o.dyn" 2>/dev/null || true
   llvm-mc -filetype=obj -triple=x86_64-unknown-linux -o "$FX/hello_dyn.o" testdata/hello_dyn.s
+  "$QO" -o "$FX/dyn" "$FX/hello_dyn.o" "$LIBC"
   # Diagnostics: does ld.so survive startup relocation processing?
   if LD_TRACE_LOADED_OBJECTS=1 "$FX/dyn" > "$FX/trace.txt" 2>&1; then
     echo "ld.so trace ok:"; head -3 "$FX/trace.txt"
