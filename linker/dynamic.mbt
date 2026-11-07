@@ -59,10 +59,12 @@ pub fn dyn_hash_content(names : Array[Bytes]) -> Bytes {
   let n = names.length()
   let nbucket = if n < 3 { 3 } else { n }
   let buckets = FixedArray::make(nbucket, 0L)
-  let chains = FixedArray::make(if n > 0 { n } else { 1 }, 0L)
+  // The chain table has nchain = n+1 entries (one per .dynsym entry,
+  // including the null symbol); ld.so indexes it up to nchain-1.
+  let chains = FixedArray::make(n + 1, 0L)
   for i in 0..<n {
     let b = elf_hash(names[i]) % nbucket
-    chains[i] = buckets[b]
+    chains[i + 1] = buckets[b]
     buckets[b] = (i + 1).to_int64()
   }
   let buf = @buffer.Buffer()
@@ -71,7 +73,7 @@ pub fn dyn_hash_content(names : Array[Bytes]) -> Bytes {
   for i in 0..<nbucket {
     buf.write_uint_le(buckets[i].to_int().reinterpret_as_uint())
   }
-  for i in 0..<n {
+  for i in 0..<n + 1 {
     buf.write_uint_le(chains[i].to_int().reinterpret_as_uint())
   }
   buf.to_bytes()
